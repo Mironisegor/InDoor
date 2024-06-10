@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "png-transparent-square-border-illustration-square-black-and-white-fuchsia-frame-miscellaneous-angle-white.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "preserves-vector-representation" : true
+  }
+}

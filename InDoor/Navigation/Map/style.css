@@ -1,0 +1,114 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background-color: #f0f0f0;
+}
+
+#mapContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+}
+
+#map {
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+}
+
+.custom-zoom {
+    position: absolute;
+    top: 230px;
+    right: 10px;
+    z-index: 10;
+}
+
+.custom-zoom button {
+    width: 60px; /* задайте ширину и высоту кнопки */
+    height: 60px;
+    background-size: cover;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    margin-bottom: 10px;
+    padding: 5px;
+    outline: none;
+    transition: all 0.3s ease;
+    background-color: transparent;
+
+}
+
+#zoomIn{
+    background-image: url('plus.png');
+}
+
+#zoomOut {
+    background-image: url('minus.png');
+}
+
+.popup {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    background: #fff;
+    padding: 0px;
+    box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transform: translateY(100%);
+    opacity: 0;
+    z-index: 11;
+}
+
+.popup-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.carousel-container {
+    width: 100%; /* Задайте нужную ширину для карусели */
+}
+
+.carousel {
+    width: 100%;
+}
+
+.carousel img {
+    width: 100%;
+    display: none;
+}
+
+.carousel img.active {
+    display: block;
+}
+
+.popup-closer {
+    margin-top: 10px;
+}
+
+.popup.active {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  z-index: 100;
+}
+
+
+
+

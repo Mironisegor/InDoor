@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Simple Map</title>
+        <link rel="stylesheet" href="node_modules/ol/ol.css" type="text/css">
+        <link rel="stylesheet" href="./style.css" type="text/css">
+        <script src="node_modules/ol/dist/ol.js"></script>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+    </head>
+<body>
+    <div id="mapContainer">
+        <div id="map" class="map"></div>
+        <div class="custom-zoom">
+            <button id="zoomIn"></button>
+            <button id="zoomOut"></button>
+        </div>
+    </div>
+    <script type="text/javascript">
+        
+        // MARK: Обмен данными
+        function getQueryParam(name) {
+            const results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+            if (results == null) {
+                return null;
+            }
+            return decodeURI(results[1]) || 0;
+        }
+        function logMessage(message) {
+            window.webkit.messageHandlers.logger.postMessage(message);
+        }
+        
+        //MARK: Загрузка тайлов
+        var localTilePath = getQueryParam('localTilePath');
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.XYZ({
+                        url: localTilePath + '/{z}/{y}/{x}.jpg',
+                        tileLoadFunction: function(imageTile, src) {
+                            var img = new Image();
+                            //logMessage(url);
+                            img.onload = function() {
+                                imageTile.getImage().src = src;
+                            };
+                            img.onerror = function() {
+                                imageTile.getImage().src = localTilePath + '/blank.jpg';
+                            };
+                            img.src = src;
+                        }
+                    })
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([0.15, -0.25]),
+                zoom: 10,
+                maxZoom: 16,
+                minZoom: 10,
+                extent: ol.proj.transformExtent([-180, -85, 180, 85], 'EPSG:4326', 'EPSG:3857'),
+                inversedYAxis: true
+            }),
+            controls: [] // Удаляем все стандартные элементы управления
+        });
+        
+        //MARK: Перевод координат
+        function lng2pixel(lon, zoom) {
+          var pixelsPerLonDegree = 3840 / 11.2;
+          return pixelsPerLonDegree * lon * 100 / 3;
+        }
+        
+        function pixrl2lng(pixel) {
+            var pixelsPerLonDegree = 3840 / 11.2;
+            return ( pixel / (pixelsPerLonDegree * 100 / 3) ) / 1.022222;
+        }
+
+        function lat2pixel(lat, zoom) {
+          var pixelsPerLatDegree = 2160 / -11.2; // Pixels per latitude degree (considering Mercator projection)
+          return pixelsPerLatDegree * lat * 64 - 600 ;
+        }
+        
+        function pixel2lat(pixel) {
+            var pixelsPerLatDegree = 2160 / -11.2; // Pixels per latitude degree (considering Mercator projection)
+            return pixel / (pixelsPerLatDegree * 64 + 600);
+        }
+                
+        //MARK: Маркеры
+        function getIconStyle() {
+            var iconPath = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="black" pointer-events="all"/></svg>';
+
+            var zoom = map.getView().getZoom();
+            var scaleFactor = Math.pow(1.7, 0) * 0.7; // Масштабный коэффициент
+
+            return new ol.style.Style({
+                image: new ol.style.Icon({
+                    anchor: [0.5, 0.5],
+                    opacity: 0,
+                    src: iconPath,
+                    scale: scaleFactor
+                })
+            });
+        }
+
+            function addMarkers(data) {
+                var iconFeatures = [];
+                for (var i = 0; i < data.length; i++) {
+                    var item = data[i];
+                    var longitude = pixrl2lng(item.x); // Получаем долготу
+                    var latitude = pixel2lat(item.y); // Получаем широту
+                    var iconPath = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="black" pointer-events="all"/></svg>';
+
+                    var iconFeature = new ol.Feature({
+                        geometry: new ol.geom.Point(ol.proj.transform([longitude, latitude], 'EPSG:4326', 'EPSG:3857')),
+                        id: item.id,
+                        name: item.name,
+                        connected: item.connected,
+                        photoUrls: item.photoUrls
+                    });
+
+                    var iconStyle = getIconStyle(); // Получаем динамический стиль иконки
+                    iconFeature.setStyle(iconStyle);
+                    iconFeatures.push(iconFeature);
+                }
+
+                var vectorSource = new ol.source.Vector({
+                    features: iconFeatures
+                });
+
+                var vectorLayer = new ol.layer.Vector({
+                    source: vectorSource
+                });
+
+                map.addLayer(vectorLayer); // Добавляем слой на карту
+            }
+        
+        function getScaleFactor(zoom) {
+            return Math.pow(1.7, zoom - 10) * 0.7;
+        }
+
+        map.getView().on('change:resolution', function() {
+            var zoom = map.getView().getZoom();
+            var scaleFactor = getScaleFactor(zoom);
+
+            map.getLayers().getArray()
+                .filter(layer => layer instanceof ol.layer.Vector)
+                .forEach(layer => {
+                    layer.getSource().getFeatures().forEach(feature => {
+                        var newStyle = new ol.style.Style({
+                            image: new ol.style.Icon({
+                                anchor: [0.5, 0.5],
+                                opacity: 0,
+                                src: feature.getStyle().getImage().getSrc(),
+                                scale: scaleFactor
+                            })
+                        });
+                        feature.setStyle(newStyle);
+                    });
+                });
+        });
+
+        //MARK: Обработчик клика
+        var graphInitialized = false;
+        var graph = {};
+        map.on('click', evt => {
+            const clickedCoord = ol.proj.transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
+            const features = map.getFeaturesAtPixel(evt.pixel);
+
+            if (features && features.length > 0) {
+                const clickedFeature = features[0];
+                const connections = clickedFeature.get('connected');
+
+                if (clickedFeature.get('name') !== "") {
+                    logMessage("Open - " + clickedFeature.get('id'));
+                }
+
+                if (connections.length <= 2) {
+                    connections.forEach(connectionId => {
+                        const connectedMarker = findMarkerById(connectionId);
+
+                        if (connectedMarker && connectedMarker.get('name')) {
+                            const startPoint = findMarkerById(1);
+
+                            if (startPoint) {
+                                // Проверяем, был ли граф уже построен
+                                if (!graphInitialized) {
+                                    graph = populateGraphWithMarkers(); // Строим граф, если он еще не был построен
+                                }
+
+                                const shortestPath = aStar(graph, startPoint.get('id'), connectedMarker.get('id'));
+                                if (shortestPath.length > 0) {
+                                    const pathPoints = shortestPath.map(pointId => findMarkerById(parseInt(pointId)));
+                                    buildRouteThroughMarkers(pathPoints);
+                                } else {
+                                    logMessage('No valid path found');
+                                }
+                            } else {
+                                logMessage('Start point not found');
+                            }
+                        }
+                    });
+                } else {
+                    const markerId = clickedFeature.get('id');
+                    logMessage(`Marker clicked, id: ${markerId}`);
+                }
+            }
+        });
+
+        //MARK: Поиск маршрута
+        function searchMarshrut(graph, startPointID, endPointId, listBrakesPoint) {
+            var minDist = Infinity;
+            var idCoord = Infinity;
+            var flag = false;
+            
+            for (var ves of Object.keys(graph[startPointID])) {
+                if (minDist > graph[startPointID][ves]) {
+                    if (!listBrakesPoint.map(String).includes(String(ves))) {
+                        var mark = findMarkerById(parseInt(ves));
+                        var markWithName = findMarkerById(parseInt(ves)+1);
+                        if (mark.get('name') !== "") {
+                            if ( mark.get('name') !== findMarkerById(parseInt(endPointId)).get('name') ) {
+                                continue
+                            }
+                        }
+                        if (markWithName.get('name') !== "") {
+                            continue
+                        }
+                        minDist = graph[startPointID][ves];
+                        idCoord = ves;
+                    }
+                }
+            }
+            
+            listBrakesPoint.push(idCoord);
+            if (String(idCoord) !== String(endPointId)) {
+                return searchMarshrut(graph, idCoord, endPointId, listBrakesPoint);
+            } else {
+                return listBrakesPoint;
+            }
+        }
+        
+        // Function to calculate the distance between two points using the Haversine formula
+        function haversine(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth's radius in meters
+            const phi1 = lat1 * Math.PI / 180; // Latitude of point 1 in radians
+            const phi2 = lat2 * Math.PI / 180; // Latitude of point 2 in radians
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180; // Difference in latitudes in radians
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180; // Difference in longitudes in radians
+
+            // Haversine formula
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); // Angular distance in radians
+            const d = R * c; // Distance in meters
+
+            return d;
+        }
+
+        function aStar(graph, start, end) {
+            // Initialize data structures for A* algorithm
+            let cameFrom = {};
+            let visited = {};
+            let gScore = {};
+            let fScore = {};
+            let open = [start];
+
+            // Set initial scores for start node
+            gScore[start] = 0;
+            fScore[start] = heuristic(start, end);
+
+            while (open.length > 0) {
+                // Find the node in open set with the lowest fScore
+                let current = null;
+                for (let node of open) {
+                    if (current === null || fScore[node] < fScore[current]) {
+                        current = node;
+                    }
+                }
+
+                if (String(current) === String(end)) {
+                    // Reconstruct the path and return it
+                    let path = reconstructPath(cameFrom, current);
+                    return path;
+                }
+
+                // Remove current node from open set and mark as visited
+                open = open.filter(node => node !== current);
+                visited[current] = true;
+
+                // Process neighbors of current node
+                for (let neighbor in graph[current]) {
+                    if (visited[neighbor]) continue; // Skip already visited nodes
+
+                    let tentative_gScore = gScore[current] + graph[current][neighbor];
+
+                    if (!open.includes(neighbor)) {
+                        open.push(neighbor); // Add neighbor to open set
+                    } else if (tentative_gScore >= gScore[neighbor]) {
+                        continue; // This is not a better path
+                    }
+
+                    // Record the best path so far
+                    cameFrom[neighbor] = current;
+                    gScore[neighbor] = tentative_gScore;
+                    fScore[neighbor] = gScore[neighbor] + heuristic(neighbor, end);
+                }
+            }
+
+            return null; // No path found
+        }
+
+        function reconstructPath(cameFrom, current) {
+            let path = [current];
+            while (cameFrom[current] !== undefined) {
+                current = cameFrom[current];
+                path.unshift(current);
+            }
+            return path;
+        }
+
+        function heuristic(node, end) {
+            return euclideanDistance(node, end);
+        }
+
+        function euclideanDistance(node1, node2) {
+            let marker1 = findMarkerById(node1);
+            let marker2 = findMarkerById(node2);
+
+            if (marker1 && marker2) {
+                let coords1 = marker1.getGeometry().getCoordinates();
+                let coords2 = marker2.getGeometry().getCoordinates();
+                return Math.sqrt(Math.pow(coords2[0] - coords1[0], 2) + Math.pow(coords2[1] - coords1[1], 2));
+            }
+
+            return Infinity;
+        }
+        
+        function populateGraphWithMarkers() {
+            var graph = {};
+            map.getLayers().forEach(function(layer) {
+                if (layer instanceof ol.layer.Vector) {
+                    var markers = layer.getSource().getFeatures();
+                    markers.forEach(function(marker) {
+                        var id = marker.get('id');
+                        var connections = marker.get('connected');
+                        
+                        if (!graph[id]) {
+                            graph[id] = {};
+                        }
+
+                        connections.forEach(function(connectionId) {
+                            var connectedMarker = findMarkerById(connectionId);
+                            if (connectedMarker) {
+                                var coord1 = marker.getGeometry().getCoordinates();
+                                var coord2 = connectedMarker.getGeometry().getCoordinates();
+
+                                var distance = ol.sphere.getDistance(coord1, coord2);
+                                graph[id][connectionId] = distance;
+                            }
+                        });
+                    });
+                }
+            });
+            graphInitialized = true; // Устанавливаем флаг, что граф построен
+            return graph;
+        }
+
+        //MARK: Построение маршрутов
+        function buildRouteThroughMarkers(markersAlongRoute) {
+            // Удаляем предыдущий слой маршрута, если он существует
+            map.getLayers().forEach(function(layer) {
+                if (layer instanceof ol.layer.Vector && layer.get('name') === 'routeLayer') {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Создание объектов геометрии маршрута
+            var routeCoordinates = [];
+            markersAlongRoute.forEach(function(marker) {
+                var markerCoord = marker.getGeometry().getCoordinates();
+                var markerCoord4326 = ol.proj.transform(markerCoord, 'EPSG:3857', 'EPSG:4326');
+                routeCoordinates.push(markerCoord4326);
+            });
+            
+            var routeGeometry = new ol.geom.LineString(routeCoordinates).transform('EPSG:4326', 'EPSG:3857');
+
+            var routeFeature = new ol.Feature({
+                geometry: routeGeometry
+            });
+
+            var routeLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: [routeFeature]
+                }),
+                style: new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'blue',
+                        width: 6
+                    })
+                }),
+                name: 'routeLayer' // Добавляем имя слою маршрута для идентификации
+            });
+
+            // Добавление слоя маршрута на карту
+            map.addLayer(routeLayer);
+        }
+        
+        //MARK: Поиск маркера
+        function findMarkerById(id) {
+          var foundMarker = null;
+          map.getLayers().forEach(function(layer) {
+            if (layer instanceof ol.layer.Vector) {
+              layer.getSource().getFeatures().forEach(function(feature) {
+                if (feature.get('id') === id) {
+                  foundMarker = feature;
+                }
+              });
+            }
+          });
+          return foundMarker;
+        }
+        
+        function findMarkerByCoordinates(lon, lat) {
+          var foundMarker = null;
+          var clickedCoordinate = ol.proj.fromLonLat([lon, lat]);
+          map.getLayers().forEach(function(layer) {
+            if (layer instanceof ol.layer.Vector) {
+              layer.getSource().getFeatures().forEach(function(feature) {
+                var markerCoordinate = feature.getGeometry().getCoordinates();
+                if (markerCoordinate[0] === clickedCoordinate[0] && markerCoordinate[1] === clickedCoordinate[1]) {
+                  foundMarker = feature;
+                }
+              });
+            }
+          });
+          return foundMarker;
+        }
+        
+        //MARK: Обработчик нажатия кнопок
+        function smoothZoomIn() {
+            var view = map.getView();
+            var zoom = view.getZoom();
+            var duration = 500;
+            var start = +new Date();
+            var animate = function() {
+                var now = +new Date();
+                var progress = Math.min((now - start) / duration, 1);
+                var easeProgress = 1 - Math.pow(1 - progress, 2);
+                view.setZoom(zoom + easeProgress * 1);
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            };
+            animate();
+        }
+
+        function smoothZoomOut() {
+            var view = map.getView();
+            var zoom = view.getZoom();
+            var duration = 500;
+            var start = +new Date();
+            var animate = function() {
+                var now = +new Date();
+                var progress = Math.min((now - start) / duration, 1);
+                var easeProgress = 1 - Math.pow(1 - progress, 2);
+                view.setZoom(zoom - easeProgress * 1);
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            };
+            animate();
+        }
+        
+        function resetMapView() {
+            var view = map.getView();
+            var initialCenter = ol.proj.fromLonLat([0.0, 0.0]);
+            var initialZoom = 1;
+            view.animate({
+                center: initialCenter,
+                zoom: initialZoom,
+                duration: 1000
+            });
+        }
+
+        function resetMapView2() {
+            var view = map.getView();
+            var initialCenter = ol.proj.fromLonLat([0.0, 0.0]);
+            var initialZoom = 1;
+            view.animate({
+                center: initialCenter,
+                zoom: initialZoom,
+                rotation: 0,
+                duration: 1000
+            });
+        }
+        
+        document.getElementById('zoomIn').onclick = function() {
+            smoothZoomIn();
+        };
+
+        document.getElementById('zoomOut').onclick = function() {
+            smoothZoomOut();
+        };
+        
+        document.getElementById('resetView').onclick = function() {
+            resetMapView();
+            resetMapView2();
+        };
+    </script>
+</body>
+</html>
+
