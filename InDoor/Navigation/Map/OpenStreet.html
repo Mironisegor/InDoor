@@ -179,24 +179,9 @@
                         const connectedMarker = findMarkerById(connectionId);
 
                         if (connectedMarker && connectedMarker.get('name')) {
-                            const startPoint = findMarkerById(1);
 
-                            if (startPoint) {
-                                // Проверяем, был ли граф уже построен
-                                if (!graphInitialized) {
-                                    graph = populateGraphWithMarkers(); // Строим граф, если он еще не был построен
-                                }
-
-                                const shortestPath = aStar(graph, startPoint.get('id'), connectedMarker.get('id'));
-                                if (shortestPath.length > 0) {
-                                    const pathPoints = shortestPath.map(pointId => findMarkerById(parseInt(pointId)));
-                                    buildRouteThroughMarkers(pathPoints);
-                                } else {
-                                    logMessage('No valid path found');
-                                }
-                            } else {
-                                logMessage('Start point not found');
-                            }
+                            buildRouteWithSwift(connectedMarker.get('id'));
+                           
                         }
                     });
                 } else {
@@ -205,6 +190,27 @@
                 }
             }
         });
+        
+        function buildRouteWithSwift(id) {
+            const startPoint = findMarkerById(1);
+
+            if (startPoint) {
+                // Проверяем, был ли граф уже построен
+                if (!graphInitialized) {
+                    graph = populateGraphWithMarkers(); // Строим граф, если он еще не был построен
+                }
+
+                const shortestPath = aStar(graph, startPoint.get('id'), id);
+                if (shortestPath.length > 0) {
+                    const pathPoints = shortestPath.map(pointId => findMarkerById(parseInt(pointId)));
+                    buildRouteThroughMarkers(pathPoints);
+                } else {
+                    logMessage('No valid path found');
+                }
+            } else {
+                logMessage('Start point not found');
+            }
+        }
 
         //MARK: Поиск маршрута
         function searchMarshrut(graph, startPointID, endPointId, listBrakesPoint) {

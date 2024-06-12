@@ -12,6 +12,8 @@ class AuditoriaVC: UIViewController, UICollectionViewDataSource, UICollectionVie
     let urlAPI = "https://indoor.skbkit.ru/api/locations/1/photos"
     let name: String
     let photoUrls: [String]
+    let descriptions: String
+    let idAuditorii: Int
     
     var timerConstPer = 1
     
@@ -19,18 +21,10 @@ class AuditoriaVC: UIViewController, UICollectionViewDataSource, UICollectionVie
     
     let autoScrollInterval: TimeInterval = 5
        
-//    var collectionView: UICollectionView!
     var pageControl: UIPageControl!
     var timer: Timer?
-    
-//    private let caruselImageAuditoria: UIImageView = {
-//        let image = UIImageView()
-//        image.contentMode = .scaleAspectFill
-//        image.translatesAutoresizingMaskIntoConstraints = false
-//        image.clipsToBounds = true
-//        return image
-//    }()
-//
+    let buildRouteNotification = Notification.Name("BuildRouteToMarker")
+
     
     private lazy var collectionView: UICollectionView = {
         let flowLayout = UICollectionViewFlowLayout()
@@ -40,11 +34,67 @@ class AuditoriaVC: UIViewController, UICollectionViewDataSource, UICollectionVie
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         return collectionView
     }()
+    private let lineBottomCollectionVIew: UIView = {
+        let bottomBorder = UIView()
+        bottomBorder.translatesAutoresizingMaskIntoConstraints = false
+        bottomBorder.backgroundColor = UIColor.white
+        bottomBorder.layer.cornerRadius = 19
+        return bottomBorder
+    }()
+    private let nameAuditoria: UILabel = {
+        let text = UILabel()
+        text.translatesAutoresizingMaskIntoConstraints = false
+        text.font = UIFont.systemFont(ofSize: 27, weight: .medium)
+        text.textColor = .black
+        text.lineBreakMode = .byWordWrapping
+        text.numberOfLines = 0
+        return text
+    }()
+    private let closeButtonAuditoria: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.Auditoria.closeButtonAuditoria
+        button.setImage(image, for: .normal)
+        return button
+    }()
+    private let aButtonAuditoria: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.Auditoria.iconMarshrut
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 12)
+        button.setImage(image, for: .normal)
+        button.setTitle("Отсюда", for: .normal)
+        button.backgroundColor = .systemBlue
+        button.layer.cornerRadius = 10
+        return button
+    }()
+    private let bButtonAuditoria: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.Auditoria.iconMarshrut
+        button.setImage(image, for: .normal)
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 12)
+        button.setTitle("Сюда", for: .normal)
+        button.backgroundColor = .systemBlue
+        button.layer.cornerRadius = 10
+        return button
+    }()
+    private let descriptionAuditoria: UILabel = {
+        let text = UILabel()
+        text.translatesAutoresizingMaskIntoConstraints = false
+        text.font = UIFont.systemFont(ofSize: 18, weight: .regular)
+        text.textColor = .black
+        text.lineBreakMode = .byWordWrapping
+        text.numberOfLines = 0
+        return text
+    }()
 
     
-    init(name: String, photoUrls: [String]) {
+    init(name: String, photoUrls: [String], descriptions: String, idAuditorii: Int) {
         self.name = name
         self.photoUrls = photoUrls
+        self.descriptions = descriptions
+        self.idAuditorii = idAuditorii
         super.init(nibName: nil, bundle: nil)
 
     }
@@ -53,16 +103,18 @@ class AuditoriaVC: UIViewController, UICollectionViewDataSource, UICollectionVie
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        self.navigationController?.setNavigationBarHidden(true, animated: false)
+        nameAuditoria.text = "Аудитория \(name)"
+        descriptionAuditoria.text = descriptions
+    }
+    
 
     override func viewDidLoad() {
         super.viewDidLoad()
-//
-//        print(name)
-//        print(photoUrls)
-        
+        view.backgroundColor = .white
         CollectionViewPhotoAuditoriiCell.gifZagruzkaVstoennaia.startAnimating()
 
-//
         for photoUrl in photoUrls {
             if let url = URL(string: urlAPI + photoUrl) {
                 URLSession.shared.dataTask(with: url) { (data, response, error) in
@@ -99,27 +151,80 @@ class AuditoriaVC: UIViewController, UICollectionViewDataSource, UICollectionVie
         
 //        // Настройка таймера для автоматического перелистывания фотографий
         timer = Timer.scheduledTimer(timeInterval: autoScrollInterval, target: self, selector: #selector(autoScroll), userInfo: nil, repeats: true)
-//
+
+        view.addSubview(lineBottomCollectionVIew)
+        view.addSubview(nameAuditoria)
+        view.addSubview(closeButtonAuditoria)
+        view.addSubview(descriptionAuditoria)
+        view.addSubview(aButtonAuditoria)
+        view.addSubview(bButtonAuditoria)
         setConstrains()
+        addActions()
     }
     
+    // MARK: AddActions
+    private func addActions(){
+        closeButtonAuditoria.addAction(UIAction(handler: { [weak self] _ in
+            self?.navigationController?.popViewController(animated: false)
+        }), for: .touchUpInside)
+        
+        aButtonAuditoria.addAction(UIAction(handler: { [weak self] _ in
+        }), for: .touchUpInside)
+        
+        bButtonAuditoria.addAction(UIAction(handler: { [weak self] _ in
+            NotificationCenter.default.post(name: self!.buildRouteNotification, object: self?.idAuditorii)
+            self?.navigationController?.popViewController(animated: false)
+        }), for: .touchUpInside)
+
+    }
+
     private func setConstrains() {
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor, constant: 0),
+            collectionView.topAnchor.constraint(equalTo: view.topAnchor, constant: -49),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.heightAnchor.constraint(equalToConstant: 300),
             
-            pageControl.topAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: -20),
-            pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            lineBottomCollectionVIew.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            lineBottomCollectionVIew.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            lineBottomCollectionVIew.centerYAnchor.constraint(equalTo: collectionView.bottomAnchor),
+            lineBottomCollectionVIew.heightAnchor.constraint(equalToConstant: 30),
+            
+            pageControl.topAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: -40),
+            pageControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            
+            nameAuditoria.topAnchor.constraint(equalTo: lineBottomCollectionVIew.bottomAnchor, constant: -5),
+            nameAuditoria.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            
+            closeButtonAuditoria.centerYAnchor.constraint(equalTo: nameAuditoria.centerYAnchor),
+            closeButtonAuditoria.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -30),
+            closeButtonAuditoria.heightAnchor.constraint(equalToConstant: 30),
+            closeButtonAuditoria.widthAnchor.constraint(equalToConstant: 30),
+            
+            aButtonAuditoria.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
+            aButtonAuditoria.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
+            aButtonAuditoria.heightAnchor.constraint(equalToConstant: 35),
+            aButtonAuditoria.widthAnchor.constraint(equalToConstant: 150),
+            
+            bButtonAuditoria.centerYAnchor.constraint(equalTo: aButtonAuditoria.centerYAnchor),
+            bButtonAuditoria.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15),
+            bButtonAuditoria.heightAnchor.constraint(equalToConstant: 35),
+            bButtonAuditoria.widthAnchor.constraint(equalToConstant: 150),
+
+            descriptionAuditoria.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 15),
+            descriptionAuditoria.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -15),
+            descriptionAuditoria.topAnchor.constraint(equalTo: nameAuditoria.bottomAnchor, constant: 20),
+
         ])
     }
     
     
     @objc func autoScroll() {
+        if listPhotos.count == 0 {
+            return 
+        }
         let nextPage = (pageControl.currentPage + 2) % listPhotos.count
 //        timerConstPer += 1
-        print(nextPage)
         collectionView.scrollToItem(at: IndexPath(item: nextPage, section: 0), at: .centeredHorizontally, animated: true)
     }
 

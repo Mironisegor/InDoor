@@ -28,8 +28,6 @@ class NavigationVC: UIViewController {
         let fileManager = FileManager.default
         let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         tileMapsPath = documentsPath.appendingPathComponent("InDoor")
-//        // Получить список всех папок в TileMap
-//        let directoryContents = try! fileManager.contentsOfDirectory(atPath: tileMapsPath.path)
 
         if fileManager.fileExists(atPath: tileMapsPath.path) {
             setUpMap()
@@ -327,23 +325,12 @@ extension NavigationVC {
         
             let localURL = "http://localhost:3000"
             if let url = Bundle.main.url(forResource: "OpenStreet", withExtension: "html") {
-                print("1")
                 let query = "?localTilePath=\(localURL)"
                 let fullURL = URL(string: url.absoluteString + query)!
                 let request = URLRequest(url: fullURL)
                 webView.load(request)
             }
 
-//            if FileManager.default.fileExists(atPath: "File.html") {
-//                // Файл существует, можно работать с ним
-//            } else {
-//                print("Файл не найден.")
-//            }
-            
-//            if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "build") {
-//                let request = URLRequest(url: url)
-//                webView.load(request)
-//            }
         } catch {
             print("Не удалось запустить сервер: \(error)")
         }
@@ -505,28 +492,32 @@ extension NavigationVC: WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
 
         if message.name == "logger" {
-            print(message.body)
-//            let components = (message.body as AnyObject).components(separatedBy: " - ")
-//
-//            if components.count == 2 {
-//                let id = components[1]
-//
-//                // Использование функции для поиска элемента по id
-//                if let foundElement = findElementById(id: Int(id)!, in: mapJSON) {
-//                    if let photoUrls = foundElement["photoUrls"] as? [String], let name = foundElement["name"] as? String, let description = foundElement["description"] as? String {
-//                        let vc = AuditoriaVC(name: name, photoUrls: photoUrls, description: description, idAuditorii: Int(id)!)
-//                        vc.hidesBottomBarWhenPushed = true
-//                        navigationController?.pushViewController(vc, animated: false)
-//                    } else {
-//                        print("Не удалось найти photoUrls или имя или description для данного id")
-//                    }
-//                } else {
-//                    print("Элемент с указанным id не найден")
-//                }
-//
-//            } else {
-//                print("Некорректный формат строки")
-//            }
+//            print(message.body)
+            let components = (message.body as AnyObject).components(separatedBy: " - ")
+
+            if components.count == 2 {
+                let id = components[1]
+                if let IntId = Int(id) {
+                    
+                } else {
+                    return
+                }
+                // Использование функции для поиска элемента по id
+                if let foundElement = findElementById(id: Int(id)!, in: mapJSON) {
+                    if let photoUrls = foundElement["photoUrls"] as? [String], let name = foundElement["name"] as? String, let description = foundElement["description"] as? String {
+                        let vc = AuditoriaVC(name: name, photoUrls: photoUrls, descriptions: description, idAuditorii: Int(id)!)
+                        vc.hidesBottomBarWhenPushed = true
+                        navigationController?.pushViewController(vc, animated: false)
+                    } else {
+                        print("Не удалось найти photoUrls или имя или description для данного id")
+                    }
+                } else {
+                    print("Элемент с указанным id не найден")
+                }
+
+            } else {
+                print("Некорректный формат строки")
+            }
 
         }
 

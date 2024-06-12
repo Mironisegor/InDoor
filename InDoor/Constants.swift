@@ -23,6 +23,7 @@ enum ImageConstants {
         
         enum Auditoria {
             static var closeButtonAuditoria = UIImage(named: "closeButtonAuditoria")
+            static var iconMarshrut = UIImage(named: "iconBuildRoute")
         }
         
         enum SearchVC {
@@ -35,6 +36,10 @@ enum ImageConstants {
         
         enum Marshrut {
             static var imageTabBarMarshrut = UIImage(named: "imageTabBarBuildRoute")
+            static var imageA = UIImage(named: "imageA")
+            static var imageB = UIImage(named: "imageB")
+            static var imageTabBarBuildRoute = UIImage(named: "imageTabBarBuildRoute")
+            static var swapPoint = UIImage(named: "swapPoint")
         }
         
         enum QRCode {
