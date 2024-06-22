@@ -9,8 +9,11 @@ import UIKit
 
 class SearchVC: UIViewController {
     
-    private var data: [String] = []
+    private var data: [String: Int] = [:]
     var filteredData = [String]()
+    let setDataAuditoriiNotification = Notification.Name("SetDataAuditoriiNotification")
+    let buildRouteNotification = Notification.Name("BuildRouteToMarker")
+
     private let tableViewSearcAudit: UITableView = {
         let tableView = UITableView()
         tableView.backgroundColor = .none
@@ -38,7 +41,7 @@ class SearchVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(rgb: 0xD9D9D9)
-        data = fillingDataTableViewCell(letter: "Г")
+        NotificationCenter.default.addObserver(self, selector: #selector(dataLoaded), name: setDataAuditoriiNotification, object: nil)
 
         tableViewSearcAudit.dataSource = self
         tableViewSearcAudit.delegate = self
@@ -58,6 +61,21 @@ class SearchVC: UIViewController {
         setupConstraints()
         setupTabbarItem()
     }
+    
+    //MARK: DataLoaded
+    @objc func dataLoaded(_ notification: Notification) {
+        if let data = notification.object as? [[String: Any]] {
+            for dict in data {
+                if let name = dict["name"] as? String, name != "", let id = dict["id"] as? Int {
+                    self.data[name] = id
+                }
+            }
+        }
+    }
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: setDataAuditoriiNotification, object: nil)
+    }
+
     
     func setupConstraints() {
         
@@ -116,22 +134,25 @@ extension SearchVC: UITableViewDataSource, UITableViewDelegate {
         if searchBarSearchAudit.text != "" {
             cell.textLabel?.text = filteredData[indexPath.row]
         } else {
-            cell.textLabel?.text = data[indexPath.row]
+            let key = Array(self.data.keys)
+            cell.textLabel?.text = key[indexPath.row]
         }
         
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let vc = NavigationVC()
-        self.navigationController?.pushViewController(vc, animated: true)
+        let values = Array(self.data.values)
+        NotificationCenter.default.post(name: self.buildRouteNotification, object: values[indexPath.row])
+        self.tabBarController?.selectedIndex = 1
     }
 }
 
 extension SearchVC: UISearchBarDelegate {
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        filteredData = data.filter({ $0.lowercased().contains(searchText.lowercased()) })
+        let key = Array(self.data.keys)
+        filteredData = key.filter({ $0.lowercased().contains(searchText.lowercased()) })
         tableViewSearcAudit.reloadData()
     }
     
