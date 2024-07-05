@@ -180,7 +180,7 @@
 
                         if (connectedMarker && connectedMarker.get('name')) {
 
-                            buildRouteWithSwift(connectedMarker.get('id'));
+                            buildRouteWithSwift(1, connectedMarker.get('id'));
                            
                         }
                     });
@@ -191,8 +191,8 @@
             }
         });
         
-        function buildRouteWithSwift(id) {
-            const startPoint = findMarkerById(1);
+        function buildRouteWithSwift(idStartPoint, id) {
+            const startPoint = findMarkerById(idStartPoint);
 
             if (startPoint) {
                 // Проверяем, был ли граф уже построен

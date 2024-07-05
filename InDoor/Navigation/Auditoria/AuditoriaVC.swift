@@ -169,10 +169,15 @@ class AuditoriaVC: UIViewController, UICollectionViewDataSource, UICollectionVie
         }), for: .touchUpInside)
         
         aButtonAuditoria.addAction(UIAction(handler: { [weak self] _ in
+            let dataForBuildRoute = [self?.idAuditorii, 2]
+            NotificationCenter.default.post(name: self!.buildRouteNotification, object: dataForBuildRoute)
+            self?.navigationController?.popViewController(animated: false)
+
         }), for: .touchUpInside)
         
         bButtonAuditoria.addAction(UIAction(handler: { [weak self] _ in
-            NotificationCenter.default.post(name: self!.buildRouteNotification, object: self?.idAuditorii)
+            let dataForBuildRoute = [1, self?.idAuditorii]
+            NotificationCenter.default.post(name: self!.buildRouteNotification, object: dataForBuildRoute)
             self?.navigationController?.popViewController(animated: false)
         }), for: .touchUpInside)
 

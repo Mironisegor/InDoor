@@ -11,7 +11,7 @@ class SearchVC: UIViewController {
     
     private var data: [String: Int] = [:]
     var filteredData = [String]()
-    let setDataAuditoriiNotification = Notification.Name("SetDataAuditoriiNotification")
+    let setDataAuditoriiNotification = Notification.Name("setDataAuditoriiNotification")
     let buildRouteNotification = Notification.Name("BuildRouteToMarker")
 
     private let tableViewSearcAudit: UITableView = {
@@ -37,7 +37,11 @@ class SearchVC: UIViewController {
         bottomBorder.backgroundColor = UIColor.blue
         return bottomBorder
     }()
-        
+    
+    override func viewDidAppear(_ animated: Bool) {
+        view.backgroundColor = .white
+    }
+            
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(rgb: 0xD9D9D9)
@@ -52,14 +56,8 @@ class SearchVC: UIViewController {
         searchBarSearchAudit.placeholder = "Введите запрос"
         view.addSubview(searchBarSearchAudit)
         searchBarSearchAudit.addSubview(lineBottomSearchBar)
-        
-        navigationController?.hidesBarsOnSwipe = true
-        navigationController?.navigationBar.isHidden = true
-
-
-        
+                
         setupConstraints()
-        setupTabbarItem()
     }
     
     //MARK: DataLoaded
@@ -97,13 +95,6 @@ class SearchVC: UIViewController {
         ])
     }
     
-    private func setupTabbarItem() {
-        tabBarItem = UITabBarItem(
-            title: "",
-            image: ImageConstants.Image.SearchVC.imageTabBarGlavnaia,
-            tag: 1
-        )
-    }
     
     func fillingDataTableViewCell(letter: String) -> [String]{
         var auditStr: String = ""
@@ -143,8 +134,9 @@ extension SearchVC: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let values = Array(self.data.values)
-        NotificationCenter.default.post(name: self.buildRouteNotification, object: values[indexPath.row])
-        self.tabBarController?.selectedIndex = 1
+        let dataForBuildRoute = [1, values[indexPath.row]]
+        NotificationCenter.default.post(name: self.buildRouteNotification, object: dataForBuildRoute)
+        self.dismiss(animated: true, completion: nil)
     }
 }
 

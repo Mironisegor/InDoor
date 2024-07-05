@@ -8,8 +8,10 @@ import UIKit
 
 class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     private var data: [String: Int] = [:]
-    let setDataAuditoriiNotification = Notification.Name("SetDataAuditoriiNotification")
+    private var dataTypeAuditoria: [Int: String] = [:]
+    let setDataAuditoriiNotification = Notification.Name("setDataAuditoriiNotification")
     let buildRouteNotification = Notification.Name("BuildRouteToMarker")
+    let pushIdStartPoint = Notification.Name("pushIdStartPoint")
     let standartTypePoint = ["Туалет", "Аудитория", "Лекционный зал", "Холл"]
     var filteredData = [String]()
     var collectionTopConstraint: NSLayoutConstraint?
@@ -72,7 +74,7 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
         search.layer.cornerRadius = 5
         search.placeholder = "Куда"
         search.searchTextField.font = UIFont.systemFont(ofSize: 16) // Увеличение размера текста
-        search.searchTextField.textColor = UIColor.gray.withAlphaComponent(0.3) // Прозрачный цвет текста
+        search.searchTextField.textColor = .gray.withAlphaComponent(0.3) // Прозрачный цвет текста
         search.searchTextField.textAlignment = .left // Центральное выравнивание текста по вертикали
         search.layer.borderWidth = 1.0 // Толщина границы
         search.layer.borderColor = UIColor.gray.withAlphaComponent(0.3).cgColor // Прозрачный цвет границ
@@ -102,15 +104,7 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
         return collectionView
     }()
     
-    private let tableViewTopResultOtkuda: UITableView = {
-        let tableView = UITableView()
-        tableView.backgroundColor = .clear
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.layer.zPosition = 1
-        return tableView
-    }()
-
-    private let tableViewTopResultKuda: UITableView = {
+    private let tableViewTopResult: UITableView = {
         let tableView = UITableView()
         tableView.backgroundColor = .clear
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -126,13 +120,21 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
         button.setTitleColor(.white, for: .normal)
         return button
     }()
+    private let resultForSearch: UILabel = {
+        let text = UILabel()
+        text.translatesAutoresizingMaskIntoConstraints = false
+        text.font = UIFont.systemFont(ofSize: 25, weight: .bold)
+        text.textColor = .lightGray
+        text.lineBreakMode = .byWordWrapping
+        text.numberOfLines = 0
+        text.text = "Результаты поиска для "
+        return text
+    }()
 
 
     override func viewDidAppear(_ animated: Bool) {
-        self.navigationController?.setNavigationBarHidden(true, animated: false)
-        tableViewTopResultOtkuda.isHidden = true
-        tableViewTopResultKuda.isHidden = true
-        buildRouteButton.isHidden = true
+//        self.navigationController?.setNavigationBarHidden(true, animated: false)
+        view.backgroundColor = .white
     }
     
     override func viewDidLoad() {
@@ -142,7 +144,7 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
         kudaTextView.delegate = self
         
         NotificationCenter.default.addObserver(self, selector: #selector(dataLoaded), name: setDataAuditoriiNotification, object: nil)
-
+//        NotificationCenter.default.addObserver(self, selector: #selector(dataIdPointLoaded), name: pushIdStartPoint, object: nil)
         
         // Создание UICollectionView
         collectionView.register(CollectionViewTypePointCell.self, forCellWithReuseIdentifier: CollectionViewTypePointCell.reuseId)
@@ -157,14 +159,9 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
         collectionView.backgroundColor = .clear
 
         // Создание tableViewTopResult
-        tableViewTopResultOtkuda.dataSource = self
-        tableViewTopResultOtkuda.delegate = self
-        tableViewTopResultOtkuda.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-
-        tableViewTopResultKuda.dataSource = self
-        tableViewTopResultKuda.delegate = self
-        tableViewTopResultKuda.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-
+        tableViewTopResult.dataSource = self
+        tableViewTopResult.delegate = self
+        tableViewTopResult.register(TableViewCellListMarkers.self, forCellReuseIdentifier: TableViewCellListMarkers.reuseId)
 
         view.addSubview(closeButtonAuditoria)
         view.addSubview(marshrutLable)
@@ -174,42 +171,55 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
         view.addSubview(kudaTextView)
         view.addSubview(swapPoint)
         
-        view.addSubview(buildRouteButton)
         view.addSubview(collectionView)
-
-        view.addSubview(tableViewTopResultOtkuda)
-        view.addSubview(tableViewTopResultKuda)
+        
+        view.addSubview(resultForSearch)
+        view.addSubview(tableViewTopResult)
+        view.addSubview(buildRouteButton)
 
         setConstrains()
-        setupTabbarItem()
-        collectionTopConstraint = self.collectionView.topAnchor.constraint(equalTo: kudaTextView.bottomAnchor, constant: 20)
-        collectionTopConstraint?.isActive = true
+        addActions()
     }
     
     //MARK: DataLoaded
     @objc func dataLoaded(_ notification: Notification) {
+        print("1")
         if let data = notification.object as? [[String: Any]] {
             for dict in data {
-                if let name = dict["name"] as? String, name != "", let id = dict["id"] as? Int {
+                if let name = dict["name"] as? String, name != "", let id = dict["id"] as? Int, let type = dict["type"] as? String {
                     self.data[name] = id
+                    self.dataTypeAuditoria[id] = type
                 }
             }
         }
     }
+//    @objc func dataIdPointLoaded(_ notification: Notification) {
+//        if let data = notification.object as? Int {
+//            otkudaTextView.text = findKey(forValue: data)
+//            print("BuildRoute 204: \(data)")
+//        }
+//    }
 
     deinit {
         // Отмена регистрации обработчика уведомления при уничтожении объекта
-        NotificationCenter.default.removeObserver(self, name: buildRouteNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: setDataAuditoriiNotification, object: nil)
+//        NotificationCenter.default.removeObserver(self, name: pushIdStartPoint, object: nil)
     }
 
-
-
+    func findKey(forValue value: Int) -> String? {
+        for (key, val) in data {
+            if val == value {
+                return key
+            }
+        }
+        return nil
+    }
 
     private func setConstrains(){
         
         NSLayoutConstraint.activate([
             marshrutLable.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            marshrutLable.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
+            marshrutLable.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             
             closeButtonAuditoria.centerYAnchor.constraint(equalTo: marshrutLable.centerYAnchor),
             closeButtonAuditoria.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
@@ -235,44 +245,56 @@ class BuildRouteVC: UIViewController, UICollectionViewDataSource, UICollectionVi
             otkudaTextView.centerYAnchor.constraint(equalTo: imageAPoint.centerYAnchor),
             otkudaTextView.leadingAnchor.constraint(equalTo: imageAPoint.trailingAnchor, constant: 10),
             otkudaTextView.trailingAnchor.constraint(equalTo: swapPoint.leadingAnchor, constant: -10),
-//            otkudaTextView.widthAnchor.constraint(equalToConstant: 150),
             otkudaTextView.heightAnchor.constraint(equalToConstant: 40),
-            
-            tableViewTopResultOtkuda.topAnchor.constraint(equalTo: otkudaTextView.bottomAnchor,constant: 10),
-            tableViewTopResultOtkuda.leadingAnchor.constraint(equalTo: otkudaTextView.leadingAnchor),
-            tableViewTopResultOtkuda.trailingAnchor.constraint(equalTo: otkudaTextView.trailingAnchor),
-            tableViewTopResultOtkuda.heightAnchor.constraint(equalToConstant: 40),
-            
+                        
             kudaTextView.centerYAnchor.constraint(equalTo: imageBPoint.centerYAnchor),
             kudaTextView.leadingAnchor.constraint(equalTo: imageBPoint.trailingAnchor, constant: 10),
             kudaTextView.trailingAnchor.constraint(equalTo: swapPoint.leadingAnchor, constant: -10),
-//            kudaTextView.widthAnchor.constraint(equalToConstant: 150),
             kudaTextView.heightAnchor.constraint(equalToConstant: 40),
-            
-            tableViewTopResultKuda.topAnchor.constraint(equalTo: kudaTextView.bottomAnchor,constant: 10),
-            tableViewTopResultKuda.leadingAnchor.constraint(equalTo: kudaTextView.leadingAnchor),
-            tableViewTopResultKuda.trailingAnchor.constraint(equalTo: kudaTextView.trailingAnchor),
-            tableViewTopResultKuda.heightAnchor.constraint(equalToConstant: 40),
-            
-            buildRouteButton.topAnchor.constraint(equalTo: kudaTextView.bottomAnchor, constant: 10),
-            buildRouteButton.widthAnchor.constraint(equalToConstant: 180),
-            buildRouteButton.heightAnchor.constraint(equalToConstant: 40),
-            buildRouteButton.centerXAnchor.constraint(equalTo: tableViewTopResultKuda.centerXAnchor),
-
+                        
+            collectionView.topAnchor.constraint(equalTo: kudaTextView.bottomAnchor, constant: 20),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
             collectionView.heightAnchor.constraint(equalToConstant: 30),
             
+            resultForSearch.topAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: 20),
+            resultForSearch.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            resultForSearch.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 10),
+            
+            tableViewTopResult.topAnchor.constraint(equalTo: resultForSearch.bottomAnchor,constant: 10),
+            tableViewTopResult.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableViewTopResult.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableViewTopResult.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -80),
+            
+            buildRouteButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -30),
+            buildRouteButton.widthAnchor.constraint(equalToConstant: 180),
+            buildRouteButton.heightAnchor.constraint(equalToConstant: 40),
+            buildRouteButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            
         ])
     }
     
-    private func setupTabbarItem() {
-        tabBarItem = UITabBarItem(
-            title: "",
-            image: ImageConstants.Image.Marshrut.imageTabBarMarshrut,
-            tag: 3
-        )
+    // MARK: AddActions
+    private func addActions(){
+        closeButtonAuditoria.addAction(UIAction(handler: { [weak self] _ in
+            self?.dismiss(animated: true, completion: nil)
+            self?.closeView()
+        }), for: .touchUpInside)
+        
+        buildRouteButton.addAction(UIAction(handler: { [weak self] _ in
+            let dataForBuildRoute = [self?.data[(self?.otkudaTextView.text!)!], self?.data[(self?.kudaTextView.text!)!]]
+            NotificationCenter.default.post(name: self!.buildRouteNotification, object: dataForBuildRoute)
+            self?.dismiss(animated: true, completion: nil)
+            self?.closeView()
+        }), for: .touchUpInside)
+
     }
+    
+    private func closeView() {
+        otkudaTextView.text = ""
+        kudaTextView.text = ""
+    }
+
 }
 
 
@@ -311,82 +333,45 @@ extension BuildRouteVC:  UITableViewDataSource, UITableViewDelegate{
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.backgroundColor = .systemGray
-        cell.textLabel?.textColor = UIColor.systemBackground.inverted
-        cell.layer.cornerRadius = 10
+        let cell = tableView.dequeueReusableCell(withIdentifier: TableViewCellListMarkers.reuseId, for: indexPath) as! TableViewCellListMarkers
+//        cell.nameLable.text = standartTypePoint[indexPath.row]
+//        cell.typeLable.text =
+//        return cell
+        
+//        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+//        cell.backgroundColor = .clear
+//        cell.textLabel?.textColor = .systemBlue
+//        cell.layer.cornerRadius = 10
 
         if otkudaTextView.text != "" {
-            cell.textLabel?.text = filteredData[indexPath.row]
+            cell.nameLable.text = filteredData[indexPath.row]
         } else {
             let key = Array(self.data.keys)
-            cell.textLabel?.text = key[indexPath.row]
+            cell.nameLable.text = key[indexPath.row]
         }
+        cell.typeLable.text = "Аудитория"
         
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if tableView == tableViewTopResultOtkuda {
+        if tableView == tableViewTopResult {
             otkudaTextView.text = filteredData[indexPath.row]
-            tableViewTopResultOtkuda.isHidden = true
-        } else if tableView == tableViewTopResultKuda {
-            kudaTextView.text = filteredData[indexPath.row]
-            tableViewTopResultKuda.isHidden = true
-        }
-        
-        let key = Array(self.data.keys)
-
-        if let searchTextOtkuda = otkudaTextView.text, key.contains(searchTextOtkuda),
-           let searchTextKuda = kudaTextView.text, key.contains(searchTextKuda) {
-            buildRouteButton.isHidden = false
-            collectionTopConstraint?.isActive = false
-            collectionTopConstraint = self.collectionView.topAnchor.constraint(equalTo: buildRouteButton.bottomAnchor, constant: 10)
-            collectionTopConstraint?.isActive = true
-            UIView.animate(withDuration: 1, animations: {
-                self.view.layoutIfNeeded()
-            }, completion: nil)
-        } else {
-            print(kudaTextView.text ?? "No text")
-        }
-
-
+            tableViewTopResult.isHidden = true
+        } 
     }
-
 }
 
 extension BuildRouteVC: UISearchBarDelegate {
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         let key = Array(self.data.keys)
-        if searchBar == otkudaTextView {
-            filteredData = key.filter({ $0.lowercased().contains(searchText.lowercased()) })
-            tableViewTopResultOtkuda.reloadData()
-        } else if searchBar == kudaTextView {
-            filteredData = key.filter({ $0.lowercased().contains(searchText.lowercased()) })
-            tableViewTopResultKuda.reloadData()
-        }
-
+        filteredData = key.filter({ $0.lowercased().contains(searchText.lowercased()) })
+        tableViewTopResult.reloadData()
     }
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
            searchBar.resignFirstResponder()
        }
     
-    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
-        if searchBar == otkudaTextView {
-            tableViewTopResultOtkuda.isHidden = false
-        } else if searchBar == kudaTextView{
-            tableViewTopResultKuda.isHidden = false
-        }
-    }
-    
-    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        if searchBar == otkudaTextView, searchBar.text?.isEmpty == false {
-            tableViewTopResultOtkuda.isHidden = true
-        } else if searchBar == kudaTextView, searchBar.text?.isEmpty == false {
-            tableViewTopResultKuda.isHidden = true
-        }
-    }
-
 }

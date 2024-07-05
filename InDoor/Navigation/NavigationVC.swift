@@ -9,6 +9,7 @@ import Zip
 import WebKit
 import Swifter
 import CoreGraphics
+import CoreBluetooth
 
 
 class NavigationVC: UIViewController {
@@ -18,32 +19,154 @@ class NavigationVC: UIViewController {
     var server: HttpServer?
     var mapJSON: [[String: Any]] = []
     let buildRouteNotification = Notification.Name("BuildRouteToMarker")
-    let setDataAuditoriiNotification = Notification.Name("SetDataAuditoriiNotification")
-
+    let setDataAuditoriiNotification = Notification.Name("setDataAuditoriiNotification")
+    let pushIdStartPoint = Notification.Name("pushIdStartPoint")
+    var centralManager: CBCentralManager!
+    var listBleMetkas : [String: String] = [:]
+    var boolProverka = false
+    
+    private let lineBottom: UIView = {
+        let bottomBorder = UIView()
+        bottomBorder.translatesAutoresizingMaskIntoConstraints = false
+        bottomBorder.backgroundColor = UIColor.black
+        return bottomBorder
+    }()
+    private let buttonMap: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.Navigation.imageTabBarNavigation
+        button.setImage(image, for: .normal)
+        return button
+    }()
+    private let buttonSearch: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.SearchVC.imageTabBarGlavnaia
+        button.setImage(image, for: .normal)
+        return button
+    }()
+    private let buttonBuildRoute: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.Marshrut.imageTabBarMarshrut
+        button.setImage(image, for: .normal)
+        return button
+    }()
+    private let buttonQRCode: UIButton = {
+        let button = UIButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        let image = ImageConstants.Image.QRCode.imageTabBarQRcode
+        button.setImage(image, for: .normal)
+        return button
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         NotificationCenter.default.addObserver(self, selector: #selector(dataLoaded), name: buildRouteNotification, object: nil)
+//        centralManager = CBCentralManager(delegate: self, queue: nil)
 
         let fileManager = FileManager.default
         let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         tileMapsPath = documentsPath.appendingPathComponent("InDoor")
 
-        if fileManager.fileExists(atPath: tileMapsPath.path) {
-            setUpMap()
-            print("Данные карты существуют")
-        } else {
+//        if fileManager.fileExists(atPath: tileMapsPath.path) {
+//            setUpMap()
+//            print("Данные карты существуют")
+//        } else {
             downloadTileMapAndSetUp()
             print("Данные карты отсутствуют")
+//        }
+        
+        view.addSubview(lineBottom)
+        view.addSubview(buttonMap)
+        view.addSubview(buttonSearch)
+        view.addSubview(buttonBuildRoute)
+        view.addSubview(buttonQRCode)
+        setConstrains()
+        addActions()
+    }
+    
+    // MARK: AddActions
+    private func addActions() {
+        
+        buttonSearch.addAction(UIAction(handler: { [weak self] _ in
+            self?.openViewController(vc: SearchVC(), nameNotification: self!.setDataAuditoriiNotification, object: self!.mapJSON)
+        }), for: .touchUpInside)
+
+        buttonBuildRoute.addAction(UIAction(handler: { [weak self] _ in
+            self?.openViewController(vc: BuildRouteVC(), nameNotification: self!.setDataAuditoriiNotification, object: self!.mapJSON)
+        }), for: .touchUpInside)
+        
+        buttonQRCode.addAction(UIAction(handler: { [weak self] _ in
+            self?.openViewController(vc: QRcodeVC())
+        }), for: .touchUpInside)
+
+    }
+    
+    private func openViewController(vc: UIViewController, nameNotification: NSNotification.Name = Notification.Name("None"), object: Any? = nil) {
+        present(vc, animated: true)
+        if nameNotification != Notification.Name("None") {
+            NotificationCenter.default.post(name: nameNotification, object: object)
         }
-        setupTabbarItem()
+    }
+
+    
+    private func setConstrains() {
+        NSLayoutConstraint.activate([
+            lineBottom.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            lineBottom.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            lineBottom.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            lineBottom.heightAnchor.constraint(equalToConstant: 80),
+            
+            buttonSearch.centerXAnchor.constraint(equalTo: lineBottom.centerXAnchor, constant: -150),
+            buttonSearch.centerYAnchor.constraint(equalTo: lineBottom.centerYAnchor, constant: -10),
+            
+            buttonMap.centerYAnchor.constraint(equalTo: buttonSearch.centerYAnchor),
+            buttonMap.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: -50),
+            
+            buttonBuildRoute.centerYAnchor.constraint(equalTo: buttonSearch.centerYAnchor),
+            buttonBuildRoute.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 50),
+            
+            buttonQRCode.centerYAnchor.constraint(equalTo: buttonSearch.centerYAnchor),
+            buttonQRCode.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 150)
+        ])
+    }
+
+    
+    
+    func checkListBleMetkasCount() {
+        if boolProverka == false {
+            if listBleMetkas["SFedU Beacon"] == nil {
+                let alert = UIAlertController(title: "Предупреждение", message: "Не удалось определить ваше местоположение.\nПопробуйте использовать QRcode.", preferredStyle: UIAlertController.Style.alert)
+                alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
+                self.present(alert, animated: true, completion: nil)
+            } else {
+                if findId(forMac: listBleMetkas["SFedU Beacon"] ?? "none") == nil {
+                   return
+                }
+                NotificationCenter.default.post(name: self.pushIdStartPoint, object: findId(forMac: listBleMetkas["SFedU Beacon"] ?? "none"))
+                tabBarController?.selectedIndex = 2
+                boolProverka = true
+            }
+        }
+    }
+
+    func findId(forMac mac: String) -> Int? {
+        for item in mapJSON {
+            if let itemMac = item["mac"] as? String, itemMac == mac {
+                if let id = item["id"] as? Int {
+                    return id
+                }
+            }
+        }
+        return nil
     }
     
     //MARK: DataLoaded
     @objc func dataLoaded(_ notification: Notification) {
-        if let data = notification.object as? Int {
+        if let data = notification.object as? [Int] {
             if let webView = webView {
-                let jsFunctionCall = "buildRouteWithSwift(\(data));"
+                let jsFunctionCall = "buildRouteWithSwift(\(data[0]),\(data[1]));"
                 webView.evaluateJavaScript(jsFunctionCall) { (result, error) in
                     if let error = error {
                         print("Error evaluating JavaScript: \(error)")
@@ -54,11 +177,30 @@ class NavigationVC: UIViewController {
     }
 
     deinit {
-        // Отмена регистрации обработчика уведомления при уничтожении объекта
         NotificationCenter.default.removeObserver(self, name: buildRouteNotification, object: nil)
     }
 
 }
+
+//extension NavigationVC: CBCentralManagerDelegate {
+//    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+//        if central.state == .poweredOn {
+//            central.scanForPeripherals(withServices: nil, options: nil)
+//        }
+//    }
+//
+//    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+//        if let name = peripheral.name {
+////            print("Found device: \(name), MAC address: \(peripheral.identifier)")
+//            listBleMetkas[name] = "\(peripheral.identifier)"
+//            if listBleMetkas.count > 0 {
+//                DispatchQueue.main.async {
+//                    self.checkListBleMetkasCount()
+//                }
+//            }
+//        }
+//    }
+//}
 
 // MARK: Read JSON
 extension NavigationVC {
@@ -71,21 +213,77 @@ extension NavigationVC {
         let connected: [Int]
         let photoUrls: [String]
         let description: String
+        let mac: String
+        let type: String
     }
+    
+//    func readLocalFile(forName name: String) -> [Coordinates] {
+//        do {
+//            if let bundlePath = Bundle.main.path(forResource: name,
+//                                                 ofType: "json"),
+//                let jsonData = try String(contentsOfFile: bundlePath).data(using: .utf8) {
+//                guard let dictionary = try! JSONSerialization.jsonObject(with: jsonData, options: .allowFragments) as? [String: Any] else {
+//                    throw NSError(domain: "ParsingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Ошибка при разборе JSON"])
+//                }
+//                let dataFromResponce = dictionary["dots"] as! [[String: Any]]
+//                var returnArray: [Coordinates] = []
+//
+//                for data in dataFromResponce{
+//                    let copyData = Coordinates(x: data["x"] as? Int ?? 0, y: data["y"] as? Int ?? 0, name: data["name"] as? String ?? "", id: data["id"] as? Int ?? 0, connected: data["connected"] as? [Int] ?? [0], photoUrls: data["photoUrls"] as? [String] ?? [""], description: data["description"] as? String ?? "", mac: data["mac"] as? String ?? "", type: data["type"] as? String ?? "")
+//                    returnArray.append(copyData)
+//                }
+//                return returnArray
+//            }
+//        } catch {
+//            print(error)
+//        }
+//        return [Coordinates]()
+//    }
     
     func readLocalFile(forName name: String) -> [Coordinates] {
         do {
+//            if let folderPath = Bundle.main.path(forResource: folder, ofType: nil),
+//                let bundlePath = URL(fileURLWithPath: folderPath).appendingPathComponent(name).appendingPathExtension("json").path,
+//                let jsonData = try Data(contentsOf: URL(fileURLWithPath: bundlePath)) {
+            let pathKorpus = tileMapsPath?.appendingPathComponent("KorpusG")
+
+//            let tileMapsDirectory = pathKorpus?.appendingPathComponent("tiles1")
+            
+//            if let bundlePath = Bundle.main.path(forResource: name, ofType: "json") {
+//                if  let jsonData = try String(contentsOfFile: bundlePath).data(using: .utf8){
+//                    print(jsonData)
+//                }
+//            }
+            
+//            let jsonData = try Data(contentsOf: URL(string:  name + ".json")!)
+//                   if let json = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+//                       print( json)
+//                   }
+//
+
             if let bundlePath = Bundle.main.path(forResource: name,
                                                  ofType: "json"),
                 let jsonData = try String(contentsOfFile: bundlePath).data(using: .utf8) {
-                guard let dictionary = try! JSONSerialization.jsonObject(with: jsonData, options: .allowFragments) as? [String: Any] else {
+
+                guard let dictionary = try JSONSerialization.jsonObject(with: jsonData, options: .allowFragments) as? [String: Any] else {
                     throw NSError(domain: "ParsingError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Ошибка при разборе JSON"])
                 }
-                let dataFromResponce = dictionary["dots"] as! [[String: Any]]
+                
+                let dataFromResponse = dictionary["dots"] as! [[String: Any]]
                 var returnArray: [Coordinates] = []
 
-                for data in dataFromResponce{
-                    let copyData = Coordinates(x: data["x"] as? Int ?? 0, y: data["y"] as? Int ?? 0, name: data["name"] as? String ?? "", id: data["id"] as? Int ?? 0, connected: data["connected"] as? [Int] ?? [0], photoUrls: data["photoUrls"] as? [String] ?? [""], description: data["description"] as? String ?? "")
+                for data in dataFromResponse {
+                    let copyData = Coordinates(
+                        x: data["x"] as? Int ?? 0,
+                        y: data["y"] as? Int ?? 0,
+                        name: data["name"] as? String ?? "",
+                        id: data["id"] as? Int ?? 0,
+                        connected: data["connected"] as? [Int] ?? [0],
+                        photoUrls: data["photoUrls"] as? [String] ?? [""],
+                        description: data["description"] as? String ?? "",
+                        mac: data["mac"] as? String ?? "",
+                        type: data["type"] as? String ?? ""
+                    )
                     returnArray.append(copyData)
                 }
                 return returnArray
@@ -122,9 +320,11 @@ extension NavigationVC {
 
     
     private func downloadTileMapAndSetUp() {
-        let fileUrl = "http://141.8.198.123:3000/download-folder"
+        let fileUrl = "https://indoor.skbkit.ru/api/locations/2/tiles/"
+        
+        guard let pathKorpus = tileMapsPath?.appendingPathComponent("KorpusG") else { return }
 
-        createDirectoryIfNeeded(at: tileMapsPath)
+        createDirectoryIfNeeded(at: pathKorpus)
 
         downloadFile(from: fileUrl) { tempLocalURL, error in
             if let error = error {
@@ -153,7 +353,7 @@ extension NavigationVC {
             }
 
             // Распаковка файла
-            self.unzipFile(at: zipURL, to: self.tileMapsPath) { error in
+            self.unzipFile(at: zipURL, to: pathKorpus) { error in
                 if let error = error {
                     DispatchQueue.main.async {
                         self.showErrorAlert(message: "Ошибка расархивации: \(error.localizedDescription)")
@@ -161,7 +361,7 @@ extension NavigationVC {
                 } else {
 //                    print("Файл успешно расархивирован в \(String(describing: self.tileMapsPath))")
                     // Проверяем содержимое распакованной папки
-                    self.checkUnzippedContent(at: self.tileMapsPath) { success in
+                    self.checkUnzippedContent(at: pathKorpus) { success in
                         if success {
                             DispatchQueue.main.async { [weak self] in
                                 self?.setUpMap()
@@ -191,8 +391,10 @@ extension NavigationVC {
         // Инициализация локального веб-сервера
         server = HttpServer()
         
-        guard let tileMapsDirectory = tileMapsPath?.appendingPathComponent("TileMap") else { return }
-                
+        
+        guard let pathKorpus = tileMapsPath?.appendingPathComponent("KorpusG") else { return }
+
+        let tileMapsDirectory = pathKorpus.appendingPathComponent("tiles1")
         let fileManager = FileManager.default
 
         // Получить список всех папок в TileMap
@@ -224,7 +426,7 @@ extension NavigationVC {
                 do {
                     try fileManager.moveItem(atPath: oldPathZ, toPath: newPathZ)
                 } catch {
-                    print("Error renaming folder 'z': \(error)")
+//                    print("Error renaming folder 'z': \(error)")
                     continue
                 }
             }
@@ -348,10 +550,12 @@ extension NavigationVC {
             keyValuePairs["connected"] = i.connected
             keyValuePairs["photoUrls"] = i.photoUrls
             keyValuePairs["description"] = i.description
+            keyValuePairs["mac"] = i.mac
+            keyValuePairs["type"] = i.type
             keyValuePairs1.append(keyValuePairs)
         }
         mapJSON = keyValuePairs1
-        NotificationCenter.default.post(name: self.setDataAuditoriiNotification, object: mapJSON)
+        print(mapJSON)
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: keyValuePairs1, options: [])
             if let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -433,7 +637,7 @@ extension NavigationVC {
     
     private func checkUnzippedContent(at path: URL, completion: (Bool) -> Void) {
         let fileManager = FileManager.default
-        let tilesPath = path.appendingPathComponent("TileMap")
+        let tilesPath = path.appendingPathComponent("tiles1")
         
         // Проверяем наличие папки ПлиткиКарт
         guard fileManager.fileExists(atPath: tilesPath.path) else {

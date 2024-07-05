@@ -14,8 +14,8 @@ class CollectionViewTypePointCell: UICollectionViewCell {
     let pointLable: UILabel = {
         let text = UILabel()
         text.translatesAutoresizingMaskIntoConstraints = false
-        text.font = UIFont.systemFont(ofSize: 18, weight: .bold)
-        text.textColor = .systemBlue
+        text.font = UIFont(name: "AppleSDGothicNeo-Bold", size: 18)
+        text.textColor = .init(red: 25, green: 102, blue: 255)
         text.lineBreakMode = .byWordWrapping
         text.numberOfLines = 1
         text.textAlignment = .center
@@ -32,7 +32,7 @@ class CollectionViewTypePointCell: UICollectionViewCell {
         clipsToBounds = false
         layer.masksToBounds = false
         
-        backgroundColor = .blue.withAlphaComponent(0.1)
+        backgroundColor = .init(red: 25, green: 102, blue: 255).withAlphaComponent(0.12)
 
         pointLable.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
         pointLable.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
