@@ -103,6 +103,7 @@ class NavigationVC: UIViewController {
 
     }
     
+    // MARK: Switching tabBar views
     private func openViewController(vc: UIViewController, nameNotification: NSNotification.Name = Notification.Name("None"), object: Any? = nil) {
         present(vc, animated: true)
         if nameNotification != Notification.Name("None") {

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2CADD15F2CCC04D100B07449 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = 2CADD15E2CCC04D100B07449 /* Zip */; };
+		2CADD1622CCC04E700B07449 /* Swifter in Frameworks */ = {isa = PBXBuildFile; productRef = 2CADD1612CCC04E700B07449 /* Swifter */; };
 		97DB81682C1F12E9006F1DF5 /* CollectionViewTypePointCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97DB81672C1F12E9006F1DF5 /* CollectionViewTypePointCell.swift */; };
 		97DB816C2C2D99B1006F1DF5 /* TableViewCellListMarkers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97DB816B2C2D99B1006F1DF5 /* TableViewCellListMarkers.swift */; };
 		97E670422C16EBAD002A632C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E670412C16EBAD002A632C /* AppDelegate.swift */; };
@@ -65,6 +67,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2CADD15F2CCC04D100B07449 /* Zip in Frameworks */,
+				2CADD1622CCC04E700B07449 /* Swifter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -191,6 +195,8 @@
 			);
 			name = InDoor;
 			packageProductDependencies = (
+				2CADD15E2CCC04D100B07449 /* Zip */,
+				2CADD1612CCC04E700B07449 /* Swifter */,
 			);
 			productName = InDoor;
 			productReference = 97E6703E2C16EBAD002A632C /* InDoor.app */;
@@ -221,6 +227,8 @@
 			);
 			mainGroup = 97E670352C16EBAD002A632C;
 			packageReferences = (
+				2CADD15D2CCC04D100B07449 /* XCRemoteSwiftPackageReference "Zip" */,
+				2CADD1602CCC04E700B07449 /* XCRemoteSwiftPackageReference "swifter" */,
 			);
 			productRefGroup = 97E6703F2C16EBAD002A632C /* Products */;
 			projectDirPath = "";
@@ -499,6 +507,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2CADD15D2CCC04D100B07449 /* XCRemoteSwiftPackageReference "Zip" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/marmelroy/Zip";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.2;
+			};
+		};
+		2CADD1602CCC04E700B07449 /* XCRemoteSwiftPackageReference "swifter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/httpswift/swifter";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2CADD15E2CCC04D100B07449 /* Zip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2CADD15D2CCC04D100B07449 /* XCRemoteSwiftPackageReference "Zip" */;
+			productName = Zip;
+		};
+		2CADD1612CCC04E700B07449 /* Swifter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2CADD1602CCC04E700B07449 /* XCRemoteSwiftPackageReference "swifter" */;
+			productName = Swifter;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 97E670362C16EBAD002A632C /* Project object */;
 }
