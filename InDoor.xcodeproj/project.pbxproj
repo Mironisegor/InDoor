@@ -29,8 +29,6 @@
 		97E670792C16EE10002A632C /* QRCodeVC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E670782C16EE10002A632C /* QRCodeVC.swift */; };
 		97E6707B2C16EE26002A632C /* QRCodeAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97E6707A2C16EE26002A632C /* QRCodeAssets.xcassets */; };
 		97E6707D2C16EE4D002A632C /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E6707C2C16EE4D002A632C /* Constants.swift */; };
-		97E670802C16EE8B002A632C /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = 97E6707F2C16EE8B002A632C /* Zip */; };
-		97E670832C16EE9D002A632C /* Swifter in Frameworks */ = {isa = PBXBuildFile; productRef = 97E670822C16EE9D002A632C /* Swifter */; };
 		97E6CCA92C170887002A632C /* node_modules in Resources */ = {isa = PBXBuildFile; fileRef = 97E6CCA82C170887002A632C /* node_modules */; };
 /* End PBXBuildFile section */
 
@@ -67,8 +65,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97E670802C16EE8B002A632C /* Zip in Frameworks */,
-				97E670832C16EE9D002A632C /* Swifter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -195,8 +191,6 @@
 			);
 			name = InDoor;
 			packageProductDependencies = (
-				97E6707F2C16EE8B002A632C /* Zip */,
-				97E670822C16EE9D002A632C /* Swifter */,
 			);
 			productName = InDoor;
 			productReference = 97E6703E2C16EBAD002A632C /* InDoor.app */;
@@ -227,8 +221,6 @@
 			);
 			mainGroup = 97E670352C16EBAD002A632C;
 			packageReferences = (
-				97E6707E2C16EE8B002A632C /* XCRemoteSwiftPackageReference "Zip" */,
-				97E670812C16EE9D002A632C /* XCRemoteSwiftPackageReference "swifter" */,
 			);
 			productRefGroup = 97E6703F2C16EBAD002A632C /* Products */;
 			projectDirPath = "";
@@ -428,7 +420,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5HP2JJLJ88;
+				DEVELOPMENT_TEAM = 5X5YVGM7KV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = InDoor/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -460,7 +452,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5HP2JJLJ88;
+				DEVELOPMENT_TEAM = 5X5YVGM7KV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = InDoor/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -507,38 +499,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		97E6707E2C16EE8B002A632C /* XCRemoteSwiftPackageReference "Zip" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/marmelroy/Zip";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.1.2;
-			};
-		};
-		97E670812C16EE9D002A632C /* XCRemoteSwiftPackageReference "swifter" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/httpswift/swifter";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		97E6707F2C16EE8B002A632C /* Zip */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 97E6707E2C16EE8B002A632C /* XCRemoteSwiftPackageReference "Zip" */;
-			productName = Zip;
-		};
-		97E670822C16EE9D002A632C /* Swifter */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 97E670812C16EE9D002A632C /* XCRemoteSwiftPackageReference "swifter" */;
-			productName = Swifter;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 97E670362C16EBAD002A632C /* Project object */;
 }
